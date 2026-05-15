@@ -2,6 +2,8 @@
 // Скетч для автоматизации теплицы в огороде
 //
 
+// =========================================================================================================================================================
+
 #include "DHT.h"
 #include <DHT_U.h>
 
@@ -30,9 +32,87 @@ DHT dht(DHTPIN, DHTTYPE);
 
 DHT_Unified dht_u(DHTPIN, DHTTYPE);
 
+// =========================================================================================================================================================
+
+#include <Arduino.h>
+#include <GyverDS3231.h>
+
+// Initialize TimeStamp sensor.
+GyverDS3231 rtc;
+
+// =========================================================================================================================================================
+
+const int MAX_ITEMS = 100;
+DataPoint collection[MAX_ITEMS];
+int itemCount = 0;
+
 void setup() {
+
   Serial.begin(9600);
 
+  initializeTemperatureSensor();
+
+  initializeStampSensor();
+
+}
+
+void loop() {
+
+  // Wait a few seconds between measurements.
+  delay(5000);
+
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  // Read temperature as Fahrenheit (isFahrenheit = true)
+  float f = dht.readTemperature(true);
+
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(h) || isnan(t) || isnan(f)) {
+    Serial.println(F("Failed to read from DHT sensor!"));
+    return;
+  }
+
+  // Compute heat index in Fahrenheit (the default)
+  float hif = dht.computeHeatIndex(f, h);
+  // Compute heat index in Celsius (isFahreheit = false)
+  float hic = dht.computeHeatIndex(t, h, false);
+
+  Serial.print(F("Date and time: "));
+  Serial.print(rtc.toString() + " ");  // rtc.timeToString(), rtc.dateToString()
+
+  Serial.print(F("Humidity: "));
+  Serial.print(h);
+  Serial.print(F("%  Temperature: "));
+  Serial.print(t);
+  Serial.print(F("°C "));
+  Serial.print(f);
+  Serial.print(F("°F  Heat index: "));
+  Serial.print(hic);
+  Serial.print(F("°C "));
+  Serial.print(hif);
+  Serial.println(F("°F"));
+
+  // Создаём элемент с тремя ключами
+  DataPoint item(rtc.toString(), h, t);
+  
+  // Добавляем в массив
+  addToCollection(item);
+
+}
+
+void addToCollection(DataBase item) {
+  if (itemCount < MAX_ITEMS) {
+    collection[itemCount] = item;
+    itemCount++;
+  }
+}
+
+// =========================================================================================================================================================
+
+void initializeTemperatureSensor() {
   // Print temperature sensor details.
   sensor_t sensor;
   dht_u.temperature().getSensor(&sensor);
@@ -59,38 +139,36 @@ void setup() {
   dht.begin();
 }
 
-void loop() {
-  // Wait a few seconds between measurements.
-  delay(5000);
+void initializeStampSensor() {
+  // Get date and time from stamp sensor 
+  setStampZone(3); // часовой пояс
+  Wire.begin();
+  rtc.begin();
 
-  // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  float h = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  float t = dht.readTemperature();
-  // Read temperature as Fahrenheit (isFahrenheit = true)
-  float f = dht.readTemperature(true);
+  Serial.print("OK: ");
+  Serial.println(rtc.isOK());
 
-  // Check if any reads failed and exit early (to try again).
-  if (isnan(h) || isnan(t) || isnan(f)) {
-    Serial.println(F("Failed to read from DHT sensor!"));
-    return;
+  Serial.print("Reset: ");
+  Serial.println(rtc.isReset());
+
+  if (rtc.isReset()) {
+      rtc.setBuildTime();  // установить время компиляции прошивки
+      // rtc.setTime(2025, 1, 30, 12, 45, 0); // установить время вручную
   }
-
-  // Compute heat index in Fahrenheit (the default)
-  float hif = dht.computeHeatIndex(f, h);
-  // Compute heat index in Celsius (isFahreheit = false)
-  float hic = dht.computeHeatIndex(t, h, false);
-
-  Serial.print(F("Humidity: "));
-  Serial.print(h);
-  Serial.print(F("%  Temperature: "));
-  Serial.print(t);
-  Serial.print(F("°C "));
-  Serial.print(f);
-  Serial.print(F("°F  Heat index: "));
-  Serial.print(hic);
-  Serial.print(F("°C "));
-  Serial.print(hif);
-  Serial.println(F("°F"));
 }
+
+// =========================================================================================================================================================
+
+// Определяем структуру для трёх ключей
+struct DataPoint {
+  String datetime;    // дата и время
+  float humid;    // влажность
+  float temp;     // температура
+  
+  // Конструктор
+  DataPoint(String d, float h, float t) {
+    datetime = d;
+    humid = h;
+    temp = t;
+  }
+};
