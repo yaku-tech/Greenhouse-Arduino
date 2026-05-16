@@ -4,7 +4,7 @@
 
 // =========================================================================================================================================================
 
-#include "DHT.h"
+#include <DHT.h>
 #include <DHT_U.h>
 
 #define DHTPIN 2     // Digital pin connected to the DHT sensor
@@ -40,10 +40,26 @@ DHT_Unified dht_u(DHTPIN, DHTTYPE);
 // Initialize TimeStamp sensor.
 GyverDS3231 rtc;
 
+String dateTimeValue;
+
 // =========================================================================================================================================================
 
-const int MAX_ITEMS = 100;
-DataPoint collection[MAX_ITEMS];
+struct DataPoint {
+  int id;
+  String datetime;  
+  float humid;      
+  float temp;       
+  
+  DataPoint(int i, String d, float h, float t) {
+    id = i;
+    datetime = d;
+    humid = h;
+    temp = t;
+  }
+};
+
+const int MAX_ITEMS = 12;
+DataPoint* collection[MAX_ITEMS];
 int itemCount = 0;
 
 void setup() {
@@ -59,7 +75,7 @@ void setup() {
 void loop() {
 
   // Wait a few seconds between measurements.
-  delay(5000);
+  delay(2000);
 
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
@@ -68,6 +84,8 @@ void loop() {
   float t = dht.readTemperature();
   // Read temperature as Fahrenheit (isFahrenheit = true)
   float f = dht.readTemperature(true);
+
+  dateTimeValue = rtc.toString();
 
   // Check if any reads failed and exit early (to try again).
   if (isnan(h) || isnan(t) || isnan(f)) {
@@ -80,34 +98,63 @@ void loop() {
   // Compute heat index in Celsius (isFahreheit = false)
   float hic = dht.computeHeatIndex(t, h, false);
 
-  Serial.print(F("Date and time: "));
-  Serial.print(rtc.toString() + " ");  // rtc.timeToString(), rtc.dateToString()
-
-  Serial.print(F("Humidity: "));
+  delay(1000);
+  
+  Serial.print(F("ID: "));
+  Serial.print(itemCount);
+  Serial.print(F("    Date and time: "));
+  Serial.print(dateTimeValue);  // rtc.timeToString(), rtc.dateToString()
+  Serial.print(F("    Humidity: "));
   Serial.print(h);
-  Serial.print(F("%  Temperature: "));
+  Serial.print(F("%    Temperature: "));
   Serial.print(t);
   Serial.print(F("°C "));
   Serial.print(f);
-  Serial.print(F("°F  Heat index: "));
+  Serial.print(F("°F   Heat index: "));
   Serial.print(hic);
   Serial.print(F("°C "));
   Serial.print(hif);
   Serial.println(F("°F"));
 
-  // Создаём элемент с тремя ключами
-  DataPoint item(rtc.toString(), h, t);
+  delay(1000);
   
-  // Добавляем в массив
-  addToCollection(item);
+  // Adding in array
+  addToCollection(itemCount, dateTimeValue, h, t);
+
+  // Incrementing
+  itemCount++;
+  if (itemCount >= MAX_ITEMS) {  
+    itemCount = 0;
+  }
+
+  if (Serial.available()) {
+    char value = Serial.read();
+    if (value == '1') { 
+      Serial.println("----------------------- Saved data -----------------------");
+      for (int i = 0; i < MAX_ITEMS; i++) {
+        int id = collection[i]->id;
+        String datetime = collection[i]->datetime;
+        float temp = collection[i]->temp;
+
+        Serial.print("id - " + String(id) + " time - " + datetime + " temp - " + String(temp));
+
+        Serial.println();
+        delay(200);
+      }
+      Serial.println("----------------------- Continue -------------------------");
+    }
+  }
 
 }
 
-void addToCollection(DataBase item) {
-  if (itemCount < MAX_ITEMS) {
-    collection[itemCount] = item;
-    itemCount++;
-  }
+void addToCollection(int k0, String k1, float k2, float k3) {
+  delete collection[k0];
+  collection[k0] = nullptr;
+
+  DataPoint* item = new DataPoint(k0, k1, k2, k3);
+  collection[itemCount] = item;
+
+  delay(200);
 }
 
 // =========================================================================================================================================================
@@ -158,17 +205,3 @@ void initializeStampSensor() {
 }
 
 // =========================================================================================================================================================
-
-// Определяем структуру для трёх ключей
-struct DataPoint {
-  String datetime;    // дата и время
-  float humid;    // влажность
-  float temp;     // температура
-  
-  // Конструктор
-  DataPoint(String d, float h, float t) {
-    datetime = d;
-    humid = h;
-    temp = t;
-  }
-};
