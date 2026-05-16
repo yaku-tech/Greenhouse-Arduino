@@ -58,7 +58,7 @@ struct DataPoint {
   }
 };
 
-const int MAX_ITEMS = 12;
+const int MAX_ITEMS = 8;
 DataPoint* collection[MAX_ITEMS];
 int itemCount = 0;
 
@@ -130,18 +130,31 @@ void loop() {
   if (Serial.available()) {
     char value = Serial.read();
     if (value == '1') { 
-      Serial.println("----------------------- Saved data -----------------------");
+      //Serial.println("----------------------- Saved data -----------------------");
+      String jsonString = "[";
       for (int i = 0; i < MAX_ITEMS; i++) {
         int id = collection[i]->id;
         String datetime = collection[i]->datetime;
+        float humid = collection[i]->humid;
         float temp = collection[i]->temp;
 
-        Serial.print("id - " + String(id) + " time - " + datetime + " temp - " + String(temp));
+        //Serial.print("id - " + String(id) + " time - " + datetime + " temp - " + String(temp));
 
-        Serial.println();
-        delay(200);
+        jsonString += "{\"i\": " + String(id) + 
+                  ", \"d\": \"" + datetime + 
+                  "\", \"h\": " + String(humid) + 
+                  ", \"t\": " + String(temp) + "}";
+    
+        if (i < MAX_ITEMS - 1) {
+          jsonString += ", ";
+        }
+
+        //delay(200);
       }
-      Serial.println("----------------------- Continue -------------------------");
+
+      jsonString += "]";
+      Serial.println(jsonString); // отправка в Android
+      //Serial.println("----------------------- Continue -------------------------");
     }
   }
 
