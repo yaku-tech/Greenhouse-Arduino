@@ -127,7 +127,9 @@ void loop() {
   
   // Adding in array.
   // Wait a few hours between fill a collection.
-  if (dt.hour == 18 || dt.hour == 20 || dt.hour == 22 || dt.hour == 0 || dt.hour == 2 || dt.hour == 4 || dt.hour == 6) {
+  dt = rtc.getTime();
+  if (dt.hour == 18 || dt.hour == 20 || dt.hour == 22 || dt.hour == 0 || dt.hour == 2 || dt.hour == 4 || dt.hour == 6 || dt.hour == 6) {
+  
     if (dt.hour != lastProcessedHour) {
       addToCollection(itemCount, dateTimeValue, h, t);
 
@@ -152,7 +154,7 @@ void addToCollection(int k0, String k1, float k2, float k3) {
   DataPoint* item = new DataPoint(k0, k1, k2, k3);
   collection[itemCount] = item;
 
-  delay(100);
+  delay(1000);
 }
 
 void sendData() {
@@ -226,6 +228,4 @@ void initializeStampSensor() {
       rtc.setBuildTime();  // установить время компиляции прошивки
       // rtc.setTime(2025, 1, 30, 12, 45, 0); // установить время вручную
   }
-
-  dt = rtc.getTime();
 }
