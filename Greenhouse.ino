@@ -128,7 +128,7 @@ void loop() {
   // Adding in array.
   // Wait a few hours between fill a collection.
   dt = rtc.getTime();
-  if (dt.hour == 18 || dt.hour == 20 || dt.hour == 22 || dt.hour == 0 || dt.hour == 2 || dt.hour == 4 || dt.hour == 6 || dt.hour == 6) {
+  if (dt.hour == 18 || dt.hour == 20 || dt.hour == 22 || dt.hour == 0 || dt.hour == 2 || dt.hour == 4 || dt.hour == 6 || dt.hour == 8) {
   
     if (dt.hour != lastProcessedHour) {
       addToCollection(itemCount, dateTimeValue, h, t);
@@ -180,6 +180,10 @@ void sendData() {
       jsonString += "]";
       Serial.println(jsonString); // send data in Android
       delay(100);
+    }
+
+    if(value == '2') {
+      Serial.println(rtc.toString());
     }
   }
 }
